@@ -14,6 +14,12 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor", "switch", "button", "text"]
 
 
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the IR Blaster component."""
+    hass.data.setdefault(DOMAIN, {})
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up IR Blaster from a config entry."""
     hass.data.setdefault(DOMAIN, {})
