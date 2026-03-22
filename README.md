@@ -1,5 +1,8 @@
 # IR Blaster — Home Assistant HACS Integration
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tds04&repository=ir_blaster&category=integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/tds04/ir_blaster)
+
 > Local control for Tuya IR blasters (PID: zG1yTHAcRg5YvqyA) via Tasmota MQTT — no cloud required.
 
 Local control integration for the RSH-Smart-IR V6 IR blaster board (sold under various brand names). Replaces Tuya cloud with full local control via Tasmota and MQTT.
