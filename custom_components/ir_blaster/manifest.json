@@ -5,9 +5,8 @@
   "config_flow": true,
   "documentation": "https://github.com/tds04/ir_blaster",
   "issue_tracker": "https://github.com/tds04/ir_blaster/issues",
-  "dependencies": [],
+  "dependencies": ["mqtt"],
   "codeowners": ["@tds04"],
   "requirements": [],
-  "iot_class": "local_push",
-  "mqtt": ["tele/+/RESULT"]
+  "iot_class": "local_push"
 }
