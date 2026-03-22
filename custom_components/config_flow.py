@@ -18,7 +18,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
-class IRBlasterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for IR Blaster."""
 
     VERSION = 1
