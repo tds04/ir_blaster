@@ -54,66 +54,30 @@ Configure MQTT in **Configuration → Configure MQTT** to point to your broker.
 |--------|------|---------|
 | `sensor.ir_blaster_last_captured_code` | Sensor | Last IR code captured during study mode |
 | `switch.ir_blaster_study_mode` | Switch | Toggle study/learn mode on/off |
-| `text.ir_blaster_send_code` | Text | Write hex code here to fire IR |
+| `button.ir_blaster_send_last_captured` | Button | Resend the last captured code (test/debug) |
+| `button.ir_blaster_<name>` | Button | One per saved code — fires that IR code |
+| `text.ir_blaster_send_code` | Text | Write any hex code directly to fire IR |
 
-## Workflow
+## Learning New Codes
 
-### Capture a new code
-1. Toggle **Study Mode** switch ON
-2. Point your remote at the IR blaster and press the button
-3. Red LED flashes — code captured
-4. `sensor.ir_blaster_last_captured_code` updates with the hex string
-5. Toggle **Study Mode** switch OFF
-6. Copy that value to an `input_text` helper to store it
+Named IR code buttons are managed through the integration's options flow — no YAML needed.
 
-### Send a code
-Write the hex string to `text.ir_blaster_send_code` from any automation or script:
+1. Go to **Settings → Devices & Services → IR Blaster → Configure**
+2. Select **Add new code**
+3. Enter a name (e.g. `Fireplace On`, `TV Power`)
+4. Point your remote at the IR blaster and press the button within 30 seconds
+5. Code is saved — a new button entity appears on the device card
+6. Repeat for each button you want to control
 
-```yaml
-service: text.set_value
-target:
-  entity_id: text.ir_blaster_send_code
-data:
-  value: "55AA000600540700005036..."
-```
+To remove a code: go back to **Configure** and select **Remove a code**.
 
-Or via MQTT directly:
-```
-cmnd/Irblaster/SerialSend5  55AA000600540700005036...
-```
+## Testing
 
-## Storing Codes
-
-Add `input_text` helpers in HA for each button you want to control:
-
-```yaml
-# configuration.yaml
-input_text:
-  ir_tv_power:
-    name: "IR - TV Power"
-    max: 500
-  ir_fireplace_on:
-    name: "IR - Fireplace On"
-    max: 500
-```
-
-Then use scripts to save and send:
-
-```yaml
-# Save last captured code
-service: input_text.set_value
-target:
-  entity_id: input_text.ir_tv_power
-data:
-  value: "{{ states('sensor.ir_blaster_last_captured_code') }}"
-
-# Send stored code
-service: text.set_value
-target:
-  entity_id: text.ir_blaster_send_code
-data:
-  value: "{{ states('input_text.ir_tv_power') }}"
-```
+Use the **Send Last Captured** button to verify the full pipeline end to end:
+1. Toggle **Study Mode** ON
+2. Point remote, press button — sensor updates with captured code
+3. Toggle **Study Mode** OFF
+4. Press **Send Last Captured** — IR fires
 
 ## Technical Details
 
