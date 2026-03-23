@@ -11,7 +11,7 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor", "switch", "button", "text"]
+PLATFORMS = ["sensor", "switch", "text"]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -35,3 +35,4 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
+
