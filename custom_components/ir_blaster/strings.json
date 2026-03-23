@@ -34,13 +34,13 @@
           "code_name": "Code Name"
         }
       },
-      "learn": {
-        "title": "Learning...",
-        "description": "Point your remote at the IR blaster and press the button now. Waiting up to 30 seconds..."
+      "learn_wait": {
+        "title": "Learning — {name}",
+        "description": "Point your remote at the IR blaster and press the button now.\n\nWaiting up to {timeout} seconds. When done (or after pressing your remote), click Submit."
       },
       "learn_result": {
         "title": "Learn Result",
-        "description": "{result}"
+        "description": "{result}\n\n{code}"
       },
       "remove": {
         "title": "Remove Code",
@@ -59,3 +59,4 @@
     }
   }
 }
+
