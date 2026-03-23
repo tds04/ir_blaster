@@ -4,6 +4,7 @@ DOMAIN = "ir_blaster"
 
 CONF_TOPIC = "mqtt_topic"
 CONF_DEVICE_NAME = "device_name"
+CONF_SAVED_CODES = "saved_codes"  # dict of {name: hex_code}
 
 # MQTT topics (Tasmota convention)
 TOPIC_SEND = "cmnd/{topic}/SerialSend5"
@@ -21,3 +22,4 @@ DP_IR_CODE_2 = "DpType0Id2"
 DP_CONTROL   = "DpType4Id1"
 
 DEFAULT_TOPIC = "Irblaster"
+LEARN_TIMEOUT = 30  # seconds
