@@ -54,30 +54,44 @@ Configure MQTT in **Configuration → Configure MQTT** to point to your broker.
 |--------|------|---------|
 | `sensor.ir_blaster_last_captured_code` | Sensor | Last IR code captured during study mode |
 | `switch.ir_blaster_study_mode` | Switch | Toggle study/learn mode on/off |
-| `button.ir_blaster_send_last_captured` | Button | Resend the last captured code (test/debug) |
-| `button.ir_blaster_<name>` | Button | One per saved code — fires that IR code |
+| `text.ir_blaster_code_name` | Text | Type a name here before pressing Learn |
 | `text.ir_blaster_send_code` | Text | Write any hex code directly to fire IR |
+| `button.ir_blaster_learn` | Button | Start learning a new code |
+| `button.ir_blaster_send_last_captured` | Button | Resend last captured code (test) |
+| `button.ir_blaster_<name>` | Button | One per saved code — fires that IR code |
 
 ## Learning New Codes
 
-Named IR code buttons are managed through the integration's options flow — no YAML needed.
+All learning happens directly on the device card — no config menus needed.
 
-1. Go to **Settings → Devices & Services → IR Blaster → Configure**
-2. Select **Add new code**
-3. Enter a name (e.g. `Fireplace On`, `TV Power`)
+1. Find the **Code Name** text field on the device card
+2. Type a name for the button (e.g. `Fireplace On`, `TV Power`)
+3. Press the **Learn** button
 4. Point your remote at the IR blaster and press the button within 30 seconds
-5. Code is saved — a new button entity appears on the device card
-6. Repeat for each button you want to control
+5. A notification confirms the code was captured and saved
+6. A new button appears on the device card — press it to fire that IR code
 
-To remove a code: go back to **Configure** and select **Remove a code**.
+Repeat for each button you want to control. Codes are stored persistently and survive HA restarts.
 
 ## Testing
 
-Use the **Send Last Captured** button to verify the full pipeline end to end:
+Use **Send Last Captured** to verify the full pipeline:
 1. Toggle **Study Mode** ON
-2. Point remote, press button — sensor updates with captured code
+2. Point remote, press button — sensor updates
 3. Toggle **Study Mode** OFF
 4. Press **Send Last Captured** — IR fires
+
+## Sending Codes via Automation
+
+Write directly to the `text.ir_blaster_send_code` entity:
+
+```yaml
+service: text.set_value
+target:
+  entity_id: text.ir_blaster_send_code
+data:
+  value: "4C8D405187FDFCB60B55835B..."
+```
 
 ## Technical Details
 
