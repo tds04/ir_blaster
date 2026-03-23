@@ -21,11 +21,41 @@
   "options": {
     "step": {
       "init": {
-        "title": "IR Blaster Options",
+        "title": "Manage IR Codes",
+        "description": "Saved codes: {saved_codes}",
         "data": {
-          "mqtt_topic": "Tasmota MQTT Topic"
+          "action": "Action"
+        }
+      },
+      "add_name": {
+        "title": "Add New Code",
+        "description": "Enter a name for this IR code (e.g. TV Power, Fireplace On).",
+        "data": {
+          "code_name": "Code Name"
+        }
+      },
+      "learn": {
+        "title": "Learning...",
+        "description": "Point your remote at the IR blaster and press the button now. Waiting up to 30 seconds..."
+      },
+      "learn_result": {
+        "title": "Learn Result",
+        "description": "{result}"
+      },
+      "remove": {
+        "title": "Remove Code",
+        "description": "Select the code to remove.",
+        "data": {
+          "code_name": "Code Name"
         }
       }
+    },
+    "abort": {
+      "no_codes": "No saved codes to remove."
+    },
+    "error": {
+      "name_required": "Please enter a name.",
+      "name_exists": "A code with that name already exists."
     }
   }
 }
