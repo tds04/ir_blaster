@@ -53,19 +53,18 @@ Configure MQTT in **Configuration → Configure MQTT** to point to your broker.
 | Entity | Type | Purpose |
 |--------|------|---------|
 | `sensor.ir_blaster_last_captured_code` | Sensor | Last IR code captured during study mode |
-| `switch.ir_blaster_study_mode` | Switch | Toggle study/learn mode |
-| `button.ir_blaster_study_on` | Button | Start study mode |
-| `button.ir_blaster_study_off` | Button | Stop study mode |
+| `switch.ir_blaster_study_mode` | Switch | Toggle study/learn mode on/off |
 | `text.ir_blaster_send_code` | Text | Write hex code here to fire IR |
 
 ## Workflow
 
 ### Capture a new code
-1. Toggle **Study Mode** switch ON (or press **Study On** button)
+1. Toggle **Study Mode** switch ON
 2. Point your remote at the IR blaster and press the button
 3. Red LED flashes — code captured
 4. `sensor.ir_blaster_last_captured_code` updates with the hex string
-5. Copy that value to an `input_text` helper to store it
+5. Toggle **Study Mode** switch OFF
+6. Copy that value to an `input_text` helper to store it
 
 ### Send a code
 Write the hex string to `text.ir_blaster_send_code` from any automation or script:
@@ -133,3 +132,4 @@ IR codes are 80 bytes raw, prefixed with Tuya framing. They come back from the M
 ## Credits
 
 Reverse engineered from IRREMOTEWFBK using TuyaMCU Explorer/Analyzer and Waveshare USB serial adapter. Protocol documented through extensive UART traffic analysis.
+
