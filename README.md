@@ -97,3 +97,4 @@ IR codes are 80 bytes raw, prefixed with Tuya framing. They come back from the M
 
 Reverse engineered from IRREMOTEWFBK using TuyaMCU Explorer/Analyzer and Waveshare USB serial adapter. Protocol documented through extensive UART traffic analysis.
 
+
