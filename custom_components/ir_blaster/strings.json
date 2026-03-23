@@ -1,0 +1,61 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up IR Blaster",
+        "description": "Connect your Tasmota IR blaster to Home Assistant via MQTT.",
+        "data": {
+          "device_name": "Device Name",
+          "mqtt_topic": "Tasmota MQTT Topic"
+        },
+        "data_description": {
+          "device_name": "Friendly name for this IR blaster (e.g. Living Room IR)",
+          "mqtt_topic": "The Tasmota Topic set in Configuration > Configure MQTT (e.g. Irblaster)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This IR blaster topic is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Manage IR Codes",
+        "description": "Saved codes: {saved_codes}",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "add_name": {
+        "title": "Add New Code",
+        "description": "Enter a name for this IR code (e.g. TV Power, Fireplace On).",
+        "data": {
+          "code_name": "Code Name"
+        }
+      },
+      "learn_wait": {
+        "title": "Learning — {name}",
+        "description": "Point your remote at the IR blaster and press the button now.\n\nWaiting up to {timeout} seconds. When done (or after pressing your remote), click Submit."
+      },
+      "learn_result": {
+        "title": "Learn Result",
+        "description": "{result}\n\n{code}"
+      },
+      "remove": {
+        "title": "Remove Code",
+        "description": "Select the code to remove.",
+        "data": {
+          "code_name": "Code Name"
+        }
+      }
+    },
+    "abort": {
+      "no_codes": "No saved codes to remove."
+    },
+    "error": {
+      "name_required": "Please enter a name.",
+      "name_exists": "A code with that name already exists."
+    }
+  }
+}
