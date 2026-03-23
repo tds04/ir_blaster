@@ -3,27 +3,28 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.components import mqtt
 from homeassistant.core import callback
-import json
 
 from .const import (
-    DOMAIN,
-    CONF_TOPIC,
     CONF_DEVICE_NAME,
     CONF_SAVED_CODES,
+    CONF_TOPIC,
     DEFAULT_TOPIC,
-    TOPIC_SEND,
-    TOPIC_RESULT,
-    PKT_STUDY_ON,
-    PKT_STUDY_OFF,
-    DP_IR_CODE_7,
+    DOMAIN,
     DP_IR_CODE_2,
+    DP_IR_CODE_7,
     LEARN_TIMEOUT,
+    PKT_STUDY_OFF,
+    PKT_STUDY_ON,
+    TOPIC_RESULT,
+    TOPIC_SEND,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,20 +71,22 @@ class IRBlasterOptionsFlow(config_entries.OptionsFlow):
             config_entry.options.get(CONF_SAVED_CODES, {})
         )
         self._pending_name: str | None = None
-        self._learned_code: str | None = None
+        # Background learn task state
+        self._learn_task: asyncio.Task | None = None
+        self._captured_code: str | None = None
+        self._learn_result: str | None = None  # "success" | "timeout"
+        self._unsubscribe = None
 
     # ------------------------------------------------------------------ #
     # Step 1: Main menu                                                    #
     # ------------------------------------------------------------------ #
     async def async_step_init(self, user_input=None):
-        """Show menu: Add Code / Remove Code / Done."""
         if user_input is not None:
             action = user_input.get("action")
             if action == "add":
                 return await self.async_step_add_name()
             if action == "remove":
                 return await self.async_step_remove()
-            # Done
             return self.async_create_entry(
                 title="",
                 data={CONF_SAVED_CODES: self._saved_codes},
@@ -95,7 +98,11 @@ class IRBlasterOptionsFlow(config_entries.OptionsFlow):
             data_schema=vol.Schema(
                 {
                     vol.Required("action", default="done"): vol.In(
-                        {"add": "Add new code", "remove": "Remove a code", "done": "Save and exit"}
+                        {
+                            "add": "Add new code",
+                            "remove": "Remove a code",
+                            "done": "Save and exit",
+                        }
                     )
                 }
             ),
@@ -103,7 +110,7 @@ class IRBlasterOptionsFlow(config_entries.OptionsFlow):
         )
 
     # ------------------------------------------------------------------ #
-    # Step 2a: Enter the name for the new code                            #
+    # Step 2a: Name the new code                                          #
     # ------------------------------------------------------------------ #
     async def async_step_add_name(self, user_input=None):
         errors = {}
@@ -115,7 +122,9 @@ class IRBlasterOptionsFlow(config_entries.OptionsFlow):
                 errors["code_name"] = "name_exists"
             else:
                 self._pending_name = name
-                return await self.async_step_learn()
+                self._captured_code = None
+                self._learn_result = None
+                return await self.async_step_learn_start()
 
         return self.async_show_form(
             step_id="add_name",
@@ -124,23 +133,22 @@ class IRBlasterOptionsFlow(config_entries.OptionsFlow):
         )
 
     # ------------------------------------------------------------------ #
-    # Step 2b: Put device in study mode and wait for a capture            #
+    # Step 2b: Start learning — send study-on, kick off background task  #
     # ------------------------------------------------------------------ #
-    async def async_step_learn(self, user_input=None):
-        """Send study-on, wait up to 30s for TuyaReceived, send study-off."""
-        if user_input is not None:
-            # User hit submit after learning — shouldn't normally happen
-            # but handle gracefully
-            return await self.async_step_init()
-
+    async def async_step_learn_start(self, user_input=None):
+        """Send study-on and launch background capture task, show waiting form."""
         topic = self.config_entry.data[CONF_TOPIC]
-        hass = self.hass
 
         # Send study on
-        await mqtt.async_publish(hass, TOPIC_SEND.format(topic=topic), PKT_STUDY_ON)
-        _LOGGER.debug("Learn mode: study ON sent for '%s'", self._pending_name)
+        await mqtt.async_publish(
+            self.hass, TOPIC_SEND.format(topic=topic), PKT_STUDY_ON
+        )
+        _LOGGER.debug("Learn: study ON for '%s'", self._pending_name)
 
-        captured_code: list[str] = []
+        # Subscribe to MQTT and start timeout task
+        self._captured_code = None
+        self._learn_result = None
+        captured: list[str] = []
         learned_event = asyncio.Event()
 
         @callback
@@ -153,55 +161,112 @@ class IRBlasterOptionsFlow(config_entries.OptionsFlow):
                     if code.startswith("0x"):
                         code = code[2:]
                     if set(code) == {"8"}:
-                        return  # noise, ignore
-                    captured_code.append(code)
+                        return
+                    captured.append(code)
                     learned_event.set()
             except (json.JSONDecodeError, AttributeError):
                 pass
 
         result_topic = TOPIC_RESULT.format(topic=topic)
-        unsubscribe = await mqtt.async_subscribe(hass, result_topic, message_received, 0)
+        self._unsubscribe = await mqtt.async_subscribe(
+            self.hass, result_topic, message_received, 0
+        )
 
-        try:
-            await asyncio.wait_for(learned_event.wait(), timeout=LEARN_TIMEOUT)
-            code = captured_code[0]
-            self._saved_codes[self._pending_name] = code
-            _LOGGER.debug("Learned code for '%s': %s", self._pending_name, code)
-            result = "success"
-        except asyncio.TimeoutError:
-            _LOGGER.warning("Learn timeout for '%s'", self._pending_name)
-            result = "timeout"
-        finally:
-            unsubscribe()
-            await mqtt.async_publish(hass, TOPIC_SEND.format(topic=topic), PKT_STUDY_OFF)
-            _LOGGER.debug("Learn mode: study OFF sent")
+        async def _wait_for_code():
+            try:
+                await asyncio.wait_for(learned_event.wait(), timeout=LEARN_TIMEOUT)
+                self._captured_code = captured[0]
+                self._learn_result = "success"
+                _LOGGER.debug("Learned '%s': %s", self._pending_name, self._captured_code)
+            except asyncio.TimeoutError:
+                self._learn_result = "timeout"
+                _LOGGER.warning("Learn timeout for '%s'", self._pending_name)
+            finally:
+                if self._unsubscribe:
+                    self._unsubscribe()
+                    self._unsubscribe = None
+                await mqtt.async_publish(
+                    self.hass, TOPIC_SEND.format(topic=topic), PKT_STUDY_OFF
+                )
+                _LOGGER.debug("Learn: study OFF")
 
-        self._learned_code = captured_code[0] if captured_code else None
-        return await self.async_step_learn_result(result)
+        self._learn_task = self.hass.async_create_task(_wait_for_code())
+
+        return self.async_show_form(
+            step_id="learn_wait",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "name": self._pending_name,
+                "timeout": str(LEARN_TIMEOUT),
+            },
+        )
 
     # ------------------------------------------------------------------ #
-    # Step 2c: Show result of learning                                     #
+    # Step 2c: User pressed Continue — check if code was captured         #
     # ------------------------------------------------------------------ #
-    async def async_step_learn_result(self, result: str, user_input=None):
+    async def async_step_learn_wait(self, user_input=None):
+        """Called when user submits the waiting form."""
+        if user_input is not None:
+            # Cancel task if still running
+            if self._learn_task and not self._learn_task.done():
+                self._learn_task.cancel()
+                if self._unsubscribe:
+                    self._unsubscribe()
+                    self._unsubscribe = None
+                topic = self.config_entry.data[CONF_TOPIC]
+                await mqtt.async_publish(
+                    self.hass, TOPIC_SEND.format(topic=topic), PKT_STUDY_OFF
+                )
+
+            if self._learn_result == "success" and self._captured_code:
+                self._saved_codes[self._pending_name] = self._captured_code
+                return self.async_show_form(
+                    step_id="learn_result",
+                    data_schema=vol.Schema({}),
+                    description_placeholders={
+                        "result": f"✅ Saved as '{self._pending_name}'",
+                        "code": self._captured_code,
+                    },
+                )
+            else:
+                return self.async_show_form(
+                    step_id="learn_result",
+                    data_schema=vol.Schema({}),
+                    description_placeholders={
+                        "result": f"⏱ No code captured within {LEARN_TIMEOUT}s. Try again.",
+                        "code": "",
+                    },
+                )
+
+        # Shouldn't reach here but show form again if needed
+        return self.async_show_form(
+            step_id="learn_wait",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "name": self._pending_name,
+                "timeout": str(LEARN_TIMEOUT),
+            },
+        )
+
+    # ------------------------------------------------------------------ #
+    # Step 2d: Show result, then back to menu                             #
+    # ------------------------------------------------------------------ #
+    async def async_step_learn_result(self, user_input=None):
         if user_input is not None:
             return await self.async_step_init()
-
-        if result == "success":
-            description = f"✅ Code saved as **{self._pending_name}**.\n\n`{self._learned_code}`"
-        else:
-            description = f"⏱ No code captured within {LEARN_TIMEOUT}s. Try again."
-
         return self.async_show_form(
             step_id="learn_result",
             data_schema=vol.Schema({}),
-            description_placeholders={"result": description},
+            description_placeholders={
+                "result": self._learn_result or "",
+                "code": self._captured_code or "",
+            },
         )
 
     # ------------------------------------------------------------------ #
     # Step 3: Remove a code                                               #
     # ------------------------------------------------------------------ #
     async def async_step_remove(self, user_input=None):
-        errors = {}
         if not self._saved_codes:
             return self.async_abort(reason="no_codes")
 
@@ -214,9 +279,6 @@ class IRBlasterOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="remove",
             data_schema=vol.Schema(
-                {
-                    vol.Required("code_name"): vol.In(list(self._saved_codes.keys()))
-                }
+                {vol.Required("code_name"): vol.In(list(self._saved_codes.keys()))}
             ),
-            errors=errors,
         )
