@@ -101,9 +101,9 @@ Key packet sequences discovered by reverse engineering:
 
 | Action | Packet |
 |--------|--------|
-| Study On | `55AA000600050104000101 11` |
-| Study Off | `55AA000600050104000102 12` |
-| Send IR | `55AA000600050100000100 0C` + DP7 code |
+| Study On | `SerialSend5 55AA000600050104000101 11` |
+| Study Off | `SerialSend5 55AA000600050104000102 12` |
+| Send IR |  `55AA000600050100000100 0C` + DP7 code |
 
 IR codes are 80 bytes raw, prefixed with Tuya framing. They come back from the MCU on DP2 or DP7 via `TuyaReceived` MQTT message.
 
