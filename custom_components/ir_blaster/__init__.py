@@ -13,7 +13,7 @@ from .storage import IRBlasterStorage
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor", "button", "text"]
+PLATFORMS = ["button", "text", "switch"]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -61,3 +61,4 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     storage = IRBlasterStorage(hass, entry.entry_id)
     await storage.async_delete()
     _LOGGER.info("IR Blaster storage deleted for entry %s", entry.entry_id)
+
