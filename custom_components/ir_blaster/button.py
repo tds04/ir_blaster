@@ -213,4 +213,13 @@ class DeleteCodeButton(IRBaseButton):
     async def async_press(self) -> None:
         storage: IRBlasterStorage = self._hass.data[DOMAIN][self._entry.entry_id]["storage"]
         if await storage.async_delete_code(self._code_id):
+            # Remove both the send and delete button entities from the registry
+            registry = er.async_get(self._hass)
+            for uid in [
+                f"{DOMAIN}_{self._topic}_code_{self._code_id}",
+                f"{DOMAIN}_{self._topic}_delete_{self._code_id}",
+            ]:
+                entity_id = registry.async_get_entity_id("button", DOMAIN, uid)
+                if entity_id:
+                    registry.async_remove(entity_id)
             await self._hass.config_entries.async_reload(self._entry.entry_id)
