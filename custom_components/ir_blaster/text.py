@@ -1,4 +1,4 @@
-"""Text platform for IR Blaster."""
+"""Text platform for IR Blaster — Code Name field only."""
 
 from __future__ import annotations
 
@@ -9,13 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (
-    CONF_DEVICE_NAME,
-    CONF_TOPIC,
-    DEFAULT_CODE_NAME_PLACEHOLDER,
-    DOMAIN,
-)
-from .button import _send_ir
+from .const import CONF_DEVICE_NAME, CONF_TOPIC, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,20 +20,24 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     topic = entry.data[CONF_TOPIC]
-    async_add_entities([
-        CodeNameText(hass, entry, topic),
-        SendCodeText(hass, entry, topic),
-    ])
+    async_add_entities([CodeNameText(hass, entry, topic)])
 
 
-class IRBaseText(TextEntity):
+class CodeNameText(TextEntity):
     _attr_has_entity_name = True
     _attr_should_poll = False
+    _attr_mode = TextMode.TEXT
+    _attr_native_min = 0
+    _attr_native_max = 100
+    _attr_icon = "mdi:label-outline"
 
     def __init__(self, hass, entry, topic):
         self._hass = hass
         self._entry = entry
         self._topic = topic
+        self._attr_name = "Code Name"
+        self._attr_unique_id = f"{DOMAIN}_{topic}_code_name"
+        self._attr_native_value = ""
 
     @property
     def device_info(self):
@@ -50,39 +48,7 @@ class IRBaseText(TextEntity):
             "model": "IRREMOTEWFBK",
         }
 
-
-class CodeNameText(IRBaseText):
-    _attr_mode = TextMode.TEXT
-    _attr_native_min = 0
-    _attr_native_max = 100
-
-    def __init__(self, hass, entry, topic):
-        super().__init__(hass, entry, topic)
-        self._attr_name = "Code Name"
-        self._attr_unique_id = f"{DOMAIN}_{topic}_code_name"
-        self._attr_native_value = DEFAULT_CODE_NAME_PLACEHOLDER
-        self._attr_icon = "mdi:label-outline"
-
     async def async_set_value(self, value: str) -> None:
         self._attr_native_value = value
         self.async_write_ha_state()
 
-
-class SendCodeText(IRBaseText):
-    _attr_mode = TextMode.TEXT
-    _attr_native_min = 0
-    _attr_native_max = 500
-
-    def __init__(self, hass, entry, topic):
-        super().__init__(hass, entry, topic)
-        self._attr_name = "Send Code"
-        self._attr_unique_id = f"{DOMAIN}_{topic}_send_code"
-        self._attr_native_value = ""
-        self._attr_icon = "mdi:remote"
-
-    async def async_set_value(self, value: str) -> None:
-        if not value:
-            return
-        self._attr_native_value = value
-        self.async_write_ha_state()
-        await _send_ir(self._hass, self._topic, value)
