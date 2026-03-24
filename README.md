@@ -52,12 +52,9 @@ Configure MQTT in **Configuration → Configure MQTT** to point to your broker.
 
 | Entity | Type | Purpose |
 |--------|------|---------|
-| `sensor.ir_blaster_last_captured_code` | Sensor | Last IR code captured during study mode |
 | `switch.ir_blaster_study_mode` | Switch | Toggle study/learn mode on/off |
 | `text.ir_blaster_code_name` | Text | Type a name here before pressing Learn |
-| `text.ir_blaster_send_code` | Text | Write any hex code directly to fire IR |
 | `button.ir_blaster_learn` | Button | Start learning a new code |
-| `button.ir_blaster_send_last_captured` | Button | Resend last captured code (test) |
 | `button.ir_blaster_<name>` | Button | One per saved code — fires that IR code |
 
 ## Learning New Codes
