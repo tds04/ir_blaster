@@ -15,7 +15,7 @@ from .const import (
     DEFAULT_CODE_NAME_PLACEHOLDER,
     DOMAIN,
 )
-from .ir_packet import _send_ir
+from .button import _send_ir
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,5 +85,4 @@ class SendCodeText(IRBaseText):
             return
         self._attr_native_value = value
         self.async_write_ha_state()
-        from .button import _send_ir
         await _send_ir(self._hass, self._topic, value)
